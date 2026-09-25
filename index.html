@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up Test</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:sans-serif; background:#0b141a; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .card { background:#182229; border-radius:14px; padding:28px; width:100%; max-width:380px; }
+  h1 { font-size:1.4rem; margin:0 0 20px; text-align:center; }
+  .tabs { display:flex; gap:8px; background:rgba(255,255,255,0.08); border-radius:10px; padding:4px; margin-bottom:20px; }
+  .tab-btn { flex:1; padding:10px; border:none; border-radius:8px; background:transparent; color:#fff; opacity:0.7; cursor:pointer; }
+  .tab-btn.active { background:#25D366; color:#0b141a; opacity:1; font-weight:bold; }
+  input { width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #333; background:#0b141a; color:#fff; font-size:0.95rem; }
+  button.action { width:100%; padding:12px; border:none; border-radius:8px; background:#25D366; color:#0b141a; font-weight:bold; font-size:1rem; cursor:pointer; margin-top:6px; }
+  button.action:disabled { opacity:0.5; }
+  .msg { min-height:20px; font-size:0.85rem; margin-top:8px; text-align:center; }
+  .msg.error { color:#ff6b6b; }
+  .msg.success { color:#25D366; }
+  #logged-in { display:none; text-align:center; }
+  #logged-in p { opacity:0.8; word-break:break-all; }
+  #logout-btn { background:#333; color:#fff; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🔑 Sign Up Test</h1>
+
+  <div id="auth-forms">
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-login">Log In</button>
+      <button class="tab-btn" id="tab-signup">Sign Up</button>
+    </div>
+
+    <div id="login-panel">
+      <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+      <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+      <button class="action" id="login-btn">Log In</button>
+    </div>
+
+    <div id="signup-panel" style="display:none;">
+      <input type="email" id="signup-email" placeholder="Email" autocomplete="email">
+      <input type="password" id="signup-password" placeholder="Password (min 6 characters)" autocomplete="new-password">
+      <button class="action" id="signup-btn">Create Account</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div id="logged-in">
+    <p>✅ Signed in as:</p>
+    <p id="user-email"></p>
+    <button class="action" id="logout-btn">Log Out</button>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAoh0qrZGF2nSFPgG8elD6o8wP1XXpd7yU",
+  authDomain: "new-web-20f2f.firebaseapp.com",
+  projectId: "new-web-20f2f",
+  storageBucket: "new-web-20f2f.firebasestorage.app",
+  messagingSenderId: "1004688472469",
+  appId: "1:1004688472469:web:4c26abf3f146bef32f5e9c"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+const $ = id => document.getElementById(id);
+const tabLogin = $('tab-login'), tabSignup = $('tab-signup');
+const loginPanel = $('login-panel'), signupPanel = $('signup-panel');
+const authForms = $('auth-forms'), loggedIn = $('logged-in'), userEmail = $('user-email');
+const msg = $('msg');
+
+tabLogin.onclick = () => { tabLogin.classList.add('active'); tabSignup.classList.remove('active'); loginPanel.style.display='block'; signupPanel.style.display='none'; msg.textContent=''; };
+tabSignup.onclick = () => { tabSignup.classList.add('active'); tabLogin.classList.remove('active'); signupPanel.style.display='block'; loginPanel.style.display='none'; msg.textContent=''; };
+
+function showMsg(text, isError) {
+  msg.textContent = text;
+  msg.className = 'msg ' + (isError ? 'error' : 'success');
+}
+
+function friendlyError(err) {
+  const code = err && err.code || '';
+  if (code.includes('email-already-in-use')) return 'That email already has an account — try logging in.';
+  if (code.includes('invalid-email')) return 'That email address doesn\u2019t look right.';
+  if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
+  if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Email or password is incorrect.';
+  return err && err.message ? err.message : 'Something went wrong, please try again.';
+}
+
+$('signup-btn').onclick = async () => {
+  const email = $('signup-email').value.trim();
+  const password = $('signup-password').value;
+  if (!email || !password) { showMsg('Please fill in both fields.', true); return; }
+  $('signup-btn').disabled = true;
+  try {
+    await auth.createUserWithEmailAndPassword(email, password);
+    showMsg('Account created!', false);
+  } catch (err) {
+    showMsg(friendlyError(err), true);
+  }
+  $('signup-btn').disabled = false;
+};
+
+$('login-btn').onclick = async () => {
+  const email = $('login-email').value.trim();
+  const password = $('login-password').value;
+  if (!email || !password) { showMsg('Please fill in both fields.', true); return; }
+  $('login-btn').disabled = true;
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (err) {
+    showMsg(friendlyError(err), true);
+  }
+  $('login-btn').disabled = false;
+};
+
+$('logout-btn').onclick = () => auth.signOut();
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    authForms.style.display = 'none';
+    loggedIn.style.display = 'block';
+    userEmail.textContent = user.email;
+  } else {
+    authForms.style.display = 'block';
+    loggedIn.style.display = 'none';
+    $('login-email').value = ''; $('login-password').value = '';
+    $('signup-email').value = ''; $('signup-password').value = '';
+    msg.textContent = '';
+  }
+});
+</script>
+
+</body>
+</html>
